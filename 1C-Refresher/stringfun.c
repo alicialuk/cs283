@@ -24,15 +24,8 @@ int setup_buff(char *buff, char *user_str, int len){
     char *outputPtr = buff;
     int spaceFound = 0; 
 
-    while(inputPtr[stringLen] != '\0'){
-        stringLen++;
-    }
-
-    inputPtr = user_str;
-
     while(*inputPtr == ' ' || *inputPtr == '\t'){
         inputPtr++;
-        stringLen--;
     }
 
     while(*inputPtr != '\0'){
@@ -40,14 +33,25 @@ int setup_buff(char *buff, char *user_str, int len){
             if(!spaceFound){
                 *outputPtr = ' ';
                 outputPtr++;
+                stringLen++;
                 spaceFound = 1;
             }
         } else {
             *outputPtr = *inputPtr;
             outputPtr++;
+            stringLen++;
             spaceFound = 0;
         }
         inputPtr++;
+
+        if (stringLen > len){
+            return -1;
+        }
+    }
+    
+    if(spaceFound){
+        outputPtr--;
+        stringLen--;
     }
 
     while(outputPtr < buff + len){
@@ -59,10 +63,11 @@ int setup_buff(char *buff, char *user_str, int len){
 }
 
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
+    printf("]");
     putchar('\n');
 }
 
@@ -78,7 +83,7 @@ int count_words(char *buff, int len, int str_len){
     char *pointer = buff;
 
     for(int i = 0; i < str_len; i++){
-        if(*pointer == ' '){
+        if(*pointer == ' '|| *pointer == '.'){
             letter = 0;
         } else {
             if(!letter){
@@ -100,7 +105,9 @@ int reverse_string(char *buff, int len, int str_len){
         j++;
     }
     reversed[str_len] = '\0';
-    printf("Reversed String: %s\n", reversed);
+    for (int i = 0; i < str_len; i++) {
+        buff[i] = reversed[i];
+    } 
     return 0;
 } 
 
@@ -120,14 +127,14 @@ int word_print(char *buff, int len, int str_len){
                 while(temp <= start){
                     putchar(*temp++);
                 }
-                printf(" (%d)\n",numChars);
+                printf("(%d)\n",numChars);
                 numChars = 0;
             }
         }
         start++;
         next++;
     }
-    printf("Number of words returned: %d\n", wordNum - 1);
+    printf("\nNumber of words returned: %d\n", wordNum - 1);
     return 0;
 }
 
@@ -214,12 +221,13 @@ int main(int argc, char *argv[]){
                 printf("Error printing words, rc = %d", rc);
                 exit(2);
             }
+            break;
         case 'x':
             if(argc != 5){
-                printf("Not implemented!\n");
+                printf("Not Implemented!\n");
                 exit(2);
             }
-            printf("Not implemented!\n");
+            printf("Not Implemented!\n");
             exit(2);
             break;
         default:
