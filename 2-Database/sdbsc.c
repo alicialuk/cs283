@@ -120,30 +120,14 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
         return EXIT_FAIL_DB;
     }
 
-    char nullByte = 0;
-    off_t target_size = MAX_STD_ID * STUDENT_RECORD_SIZE;
-    if (lseek(fd, target_size - 1, SEEK_SET) == -1 ||
-        write(fd, &nullByte, 1) != 1) {
-        printf(M_ERR_DB_WRITE);
-        return ERR_DB_FILE;
-    }
-
-    memset(&newStudent, 0, STUDENT_RECORD_SIZE);
-    newStudent.id = id;
-    strncpy(newStudent.fname,fname,sizeof(newStudent.fname)-1);
-    strncpy(newStudent.lname,lname,sizeof(newStudent.lname)-1);
-    newStudent.gpa = gpa;
+    
+    
     pos = id * STUDENT_RECORD_SIZE;
 
-    // if (pos >= MAX_STD_ID * STUDENT_RECORD_SIZE) {
-    //     printf(M_ERR_DB_WRITE);
-    //     return ERR_DB_FILE;
-    // }
-
-    // if (lseek(fd, MAX_STD_ID * STUDENT_RECORD_SIZE - 1, SEEK_SET) != -1) {
-    //     char nullByte = 0;
-    //     write(fd, &nullByte, 1);
-    // }
+    if (lseek(fd, MAX_STD_ID * STUDENT_RECORD_SIZE - 1, SEEK_SET) != -1) {
+        char nullByte = 0;
+        write(fd, &nullByte, 1);
+    }
 
     if(lseek(fd,pos,SEEK_SET) == -1){
         printf(M_ERR_DB_READ);
@@ -151,15 +135,16 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     }
 
     bytesRead = read(fd, &existingStudent, STUDENT_RECORD_SIZE);
-    if (bytesRead == STUDENT_RECORD_SIZE && existingStudent.id != DELETED_STUDENT_ID) {
+    if (bytesRead == STUDENT_RECORD_SIZE && existingStudent.id != 0) {
         printf(M_ERR_DB_ADD_DUP, id);
-        return ERR_DB_FILE;  
+        return ERR_DB_OP; 
     }
 
-    // if(existingStudent.id != DELETED_STUDENT_ID){
-    //     printf(M_ERR_DB_ADD_DUP, id);
-    //     return EXIT_FAIL_DB;
-    // }
+    memset(&newStudent, 0, STUDENT_RECORD_SIZE);
+    newStudent.id = id;
+    strncpy(newStudent.fname,fname,sizeof(newStudent.fname)-1);
+    strncpy(newStudent.lname,lname,sizeof(newStudent.lname)-1);
+    newStudent.gpa = gpa;
 
     if(lseek(fd,pos,SEEK_SET)==-1){
         printf(M_ERR_DB_READ);
@@ -452,8 +437,54 @@ void print_student(student_t *s)
  */
 int compress_db(int fd)
 {
-    // TODO
-    printf(M_NOT_IMPL);
+    student_t student;
+    int temp;
+    ssize_t bytesRead;
+    off_t newPos = 0;
+
+    temp = open(TMP_DB_FILE,O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+    if(temp == -1){
+        printf(M_ERR_DB_OPEN);
+        return ERR_DB_FILE;
+    }
+    if(lseek(fd,0,SEEK_SET)==-1){
+        close(temp);
+        unlink(TMP_DB_FILE);
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    while((bytesRead = read(fd,&student,STUDENT_RECORD_SIZE)) == STUDENT_RECORD_SIZE){
+        if(student.id != DELETED_STUDENT_ID){
+            if(write(temp, &student, STUDENT_RECORD_SIZE)!= STUDENT_RECORD_SIZE){
+                close(temp);
+                unlink(TMP_DB_FILE);
+                printf(M_ERR_DB_WRITE);
+                return ERR_DB_FILE;
+            }
+        }
+    }
+
+    if (bytesRead == -1) {
+        close(temp);
+        unlink(TMP_DB_FILE);
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    close(fd);
+    close(temp);
+
+    if (rename(TMP_DB_FILE, DB_FILE) == -1) {
+        printf(M_ERR_DB_CREATE);
+        return ERR_DB_FILE;
+    }
+    fd = open(DB_FILE, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if (fd == -1) {
+        printf(M_ERR_DB_OPEN);
+        return ERR_DB_FILE;
+    }
+    printf(M_DB_COMPRESSED_OK);
     return fd;
 }
 
