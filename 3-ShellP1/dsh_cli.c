@@ -46,41 +46,44 @@
  */
 int main()
 {
-    char cmd_buff[SH_CMD_MAX];
+    char *cmd_buff = malloc(SH_CMD_MAX);
+    if (cmd_buff == NULL) {
+        fprintf(stderr, "Failed to allocate command buffer\n");
+        return EXIT_FAILURE;
+    }
+
     int rc = 0;
     command_list_t clist;
-
-    while(1){
+    
+    while(1) {
         printf("%s", SH_PROMPT);
-        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL){
+        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL) {
             printf("\n");
             break;
-         }
-         //remove the trailing \n from cmd_buff
+        }
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
-        if(strcmp(cmd_buff,EXIT_CMD) == 0){
+        
+        if(strcmp(cmd_buff,EXIT_CMD) == 0) {
+            free(cmd_buff);
             return EXIT_SUCCESS;
         }
-
+        
         rc = build_cmd_list(cmd_buff,&clist);
-
-        switch(rc){
+        switch(rc) {
             case OK:
                 break;
-            
             case WARN_NO_CMDS:
                 printf("%s",CMD_WARN_NO_CMD);
                 break;
-
             case ERR_TOO_MANY_COMMANDS:
                 printf(CMD_ERR_PIPE_LIMIT,CMD_MAX);
                 break;
-
             default:
                 fprintf(stderr,"Error: Unexpected parsing result\n");
                 break;
         }
     }
-  
+    
+    free(cmd_buff);
     return EXIT_SUCCESS;
 }
