@@ -52,6 +52,38 @@
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
  */
+int alloc_cmd_buff(cmd_buff_t *cmd_buff) {
+    cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX);
+    if (!cmd_buff->_cmd_buffer) {
+        return ERR_MEMORY;
+    }
+    cmd_buff->argc = 0;
+    for (int i = 0; i < CMD_ARGV_MAX; i++) {
+        cmd_buff->argv[i] = NULL;
+    }
+    return OK;
+}
+
+int free_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (cmd_buff->_cmd_buffer) {
+        free(cmd_buff->_cmd_buffer);
+        cmd_buff->_cmd_buffer = NULL;
+    }
+    cmd_buff->argc = 0;
+    for (int i = 0; i < CMD_ARGV_MAX; i++) {
+        cmd_buff->argv[i] = NULL;
+    }
+    return OK;
+}
+
+int clear_cmd_buff(cmd_buff_t *cmd_buff) {
+    cmd_buff->argc = 0;
+    for (int i = 0; i < CMD_ARGV_MAX; i++) {
+        cmd_buff->argv[i] = NULL;
+    }
+    return OK;
+}
+
 int exec_local_cmd_loop()
 {
     char *cmd_buff = malloc(SH_CMD_MAX);
@@ -149,67 +181,35 @@ int exec_local_cmd_loop()
     return OK;
 }
 
-int alloc_cmd_buff(cmd_buff_t *cmd_buff) {
-    cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX);
-    if (!cmd_buff->_cmd_buffer) {
-        return ERR_MEMORY;
-    }
-    cmd_buff->argc = 0;
-    for (int i = 0; i < CMD_ARGV_MAX; i++) {
-        cmd_buff->argv[i] = NULL;
-    }
-    return OK;
-}
-
-int free_cmd_buff(cmd_buff_t *cmd_buff) {
-    if (cmd_buff->_cmd_buffer) {
-        free(cmd_buff->_cmd_buffer);
-        cmd_buff->_cmd_buffer = NULL;
-    }
-    cmd_buff->argc = 0;
-    for (int i = 0; i < CMD_ARGV_MAX; i++) {
-        cmd_buff->argv[i] = NULL;
-    }
-    return OK;
-}
-
-int clear_cmd_buff(cmd_buff_t *cmd_buff) {
-    cmd_buff->argc = 0;
-    for (int i = 0; i < CMD_ARGV_MAX; i++) {
-        cmd_buff->argv[i] = NULL;
-    }
-    return OK;
-}
-
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff) {
-    char *p;
+    char *pointer;
     int i = 0;
     bool in_quote = false;
 
     strncpy(cmd_buff->_cmd_buffer, cmd_line, SH_CMD_MAX - 1);
     cmd_buff->_cmd_buffer[SH_CMD_MAX - 1] = '\0';
-    p = cmd_buff->_cmd_buffer;
+    pointer = cmd_buff->_cmd_buffer;
 
-    while (*p == ' ') p++;
-    if (!*p) return OK;
+    while (*pointer == ' ') pointer++;
+    if (!*pointer) return OK;
 
-    cmd_buff->argv[0] = p;
+    cmd_buff->argv[0] = pointer;
 
-    while (*p) {
-        if (*p == '"') {
+    while (*pointer) {
+        if (*pointer == '"') {
             if (!in_quote) {
-                memmove(p, p + 1, strlen(p));
+                memmove(pointer, pointer + 1, strlen(pointer));
                 in_quote = true;
             } else {
-                memmove(p, p + 1, strlen(p));
+                memmove(pointer, pointer + 1, strlen(pointer));
                 in_quote = false;
-                if (*p == ' ') {
-                    *p = '\0';
-                    p++;
-                    while (*p == ' ') p++;
-                    if (*p && i < CMD_ARGV_MAX - 1) {
+                if (*pointer == ' ') {
+                    *pointer = '\0';
+                    pointer++;
+                    while (*pointer == ' ') pointer++;
+                    if (*pointer && i < CMD_ARGV_MAX - 1) {
                         i++;
-                        cmd_buff->argv[i] = p;
+                        cmd_buff->argv[i] = pointer;
                     }
                     continue;
                 }
@@ -217,16 +217,16 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff) {
             continue;
         }
 
-        if (*p == ' ' && !in_quote) {
-            *p = '\0';
-            p++;
-            while (*p == ' ') p++;
-            if (*p && i < CMD_ARGV_MAX - 1) {
+        if (*pointer == ' ' && !in_quote) {
+            *pointer = '\0';
+            pointer++;
+            while (*pointer == ' ') pointer++;
+            if (*pointer && i < CMD_ARGV_MAX - 1) {
                 i++;
-                cmd_buff->argv[i] = p;
+                cmd_buff->argv[i] = pointer;
             }
         } else {
-            p++;
+            pointer++;
         }
     }
 
