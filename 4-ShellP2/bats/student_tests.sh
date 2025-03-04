@@ -12,3 +12,17 @@ EOF
     # Assertions
     [ "$status" -eq 0 ]
 }
+
+@test "Basic pipe"{
+    run "./dsh" <<EOF
+ls | grep ".c"
+EOF
+    
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"dsh_cli.c"* ]]
+    [[ "$output" == *"dshlib.c"* ]]
+}
